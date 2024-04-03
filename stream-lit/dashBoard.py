@@ -4,49 +4,32 @@ import streamlit as st
 from streamlit_dynamic_filters import DynamicFilters
 import plotly.express as px
 
-# Sample data
+data = pd.read_excel("test_data.xlsx")
 
-# Define the random values
-states = ['São Paulo', 'Rio de Janeiro', 'Minas Gerais', 'Rio Grande do Sul', 'Paraná']
-cities = ['São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Porto Alegre', 'Curitiba']
-products = ['Product A', 'Product B', 'Product C']
+# App title and description
+st.title("ANP and ExxonMobil Dashboard")
+st.markdown("""
+    This dashboard provides insights into ANP and ExxonMobil data.
+    Explore different filters and visualize the data dynamically.
+""")
 
-# Define the number of rows
-num_rows = 100
-
-# Generate random data
-np.random.seed(42)
-years = np.random.randint(2010, 2025, num_rows)
-months = np.random.choice(['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], num_rows)
-states_random = np.random.choice(states, num_rows)
-cities_random = np.random.choice(cities, num_rows)
-products_random = np.random.choice(products, num_rows)
-value = np.random.randint(1, 150)
-
-# Create the DataFrame
-data = pd.DataFrame({
-    'Year': years,
-    'Month': months,
-    'State': states_random,
-    'City': cities_random,
-    'Product': products_random,
-    'Value': value
-})
-
-# Panel title
-st.title("DashBoard ANP e ExxonMobil")
-
-# Layout dos filtros
-dynamic_filters = DynamicFilters(df=data, filters=['Year', 'Month', 'State', 'City', 'Product'])
-
-
+# Sidebar filters
 with st.sidebar:
-    st.write("Filters")
-    
-dynamic_filters.display_filters(location="sidebar")
+    st.title("Filters")
+    dynamic_filters = DynamicFilters(df=data, filters=['Year', 'Month', 'State', 'City', 'Product'])
+    dynamic_filters.display_filters(location="sidebar")
 
+# Main content area
+st.header("Data Overview")
+
+# Display filtered DataFrame
 dynamic_filters.display_df()
 
-# Gráfico
-fig = px.bar(dynamic_filters.df, x='Year', y='Value', color='State', barmode='group', title='Valor por Month e State')
+# Plot
+st.header("Value by Year and State")
+fig = px.bar(dynamic_filters.filter_df(), x='Year', y='Value', color='State', barmode='group', title='Value by Month and State')
 st.plotly_chart(fig, use_container_width=True)
+
+# Map
+st.header("Map")
+st.map(dynamic_filters.filter_df()[['LAT', 'LON']])
