@@ -32,4 +32,4 @@ st.plotly_chart(fig, use_container_width=True)
 
 # Map
 st.header("Map")
-st.map(dynamic_filters.filter_df()[['LAT', 'LON']])
+st.map(dynamic_filters.filter_df()[['LAT', 'LON']], size=40)
