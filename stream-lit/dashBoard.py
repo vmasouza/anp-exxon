@@ -4,6 +4,7 @@ import streamlit as st
 from streamlit_dynamic_filters import DynamicFilters
 from statsmodels.tsa.seasonal import seasonal_decompose
 import plotly.express as px
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 data = pd.read_csv("UF-072001-022024.csv", sep=",")
 
@@ -69,6 +70,7 @@ selected_product = st.selectbox('Select a product:', example_data['PRODUTO'].uni
 
 # Button to generate the plots
 if st.button('Generate'):
+    
     # Filter the data according to selections
     filtered_data = example_data[(example_data['ESTADO'] == selected_state) & (example_data['PRODUTO'] == selected_product)]
     
@@ -83,12 +85,55 @@ if st.button('Generate'):
     decomposition = seasonal_decompose(example_ts, model='additive', period=12)
     
     # Plot the decomposition components
-    fig_trend = px.line(x=decomposition.trend.index, y=decomposition.trend, title='Trend Component')
-    fig_seasonal = px.line(x=decomposition.seasonal.index, y=decomposition.seasonal, title='Seasonal Component')
-    fig_residual = px.scatter(x=decomposition.resid.index, y=decomposition.resid, title='Residual Component')
+    fig_trend = px.line(x=decomposition.trend.index, y=decomposition.trend)
+    fig_seasonal = px.line(x=decomposition.seasonal.index, y=decomposition.seasonal)
+    fig_residual = px.scatter(x=decomposition.resid.index, y=decomposition.resid)
+    
+    # defining plot style
+    fig_trend.update_layout(title=f'Trend Component of product {selected_product} in state {selected_state}',
+                    xaxis_title='Date',
+                    yaxis_title='Quantity (cubic meters)')
+    fig_seasonal.update_layout(title=f'Seasonal Component of product {selected_product} in state {selected_state}',
+                    xaxis_title='Date',
+                    yaxis_title='Quantity (cubic meters)')
+    fig_residual.update_layout(title=f'Residual Component {selected_product} in state {selected_state}',
+                    xaxis_title='Date',
+                    yaxis_title='Quantity (cubic meters)')
     
     # Display the component graphs
     st.subheader('Decomposed Time Series Components')
     st.plotly_chart(fig_trend)
     st.plotly_chart(fig_seasonal)
     st.plotly_chart(fig_residual)
+    
+    # ======= SAMIRA =======
+
+    # The seasonal_decompose already suggested a yearly seasonality (period=12 months), 
+    # so let's use that as a starting point for the SARIMA model.
+    # We'll start with the same (1,1,1) configuration for ARIMA parameters and add a simple seasonal component.
+
+    # Define SARIMA model configuration
+    sarima_order = (1, 1, 1)
+    seasonal_order = (1, 1, 1, 12)
+
+    # Fit the SARIMA model
+    sarima_model = SARIMAX(example_ts, order=sarima_order, seasonal_order=seasonal_order)
+    sarima_model_fit = sarima_model.fit(disp=False)
+
+    # Forecast the next 12 months with the SARIMA model
+    sarima_forecast = sarima_model_fit.forecast(steps=12)
+
+    # To ensure the forecast aligns correctly on the timeline, we create a new date range starting from the last date
+    # of the historical data
+    forecast_dates = pd.date_range(start=example_ts.index[-1], periods=len(sarima_forecast) + 1, freq='M')[1:]
+
+    # Plotting the corrected visualization using Plotly Express
+    fig = px.line()
+    fig.add_scatter(x=example_ts.index, y=example_ts, mode='lines+markers', name='Original')
+    fig.add_scatter(x=forecast_dates, y=sarima_forecast, mode='lines+markers', name='SARIMA Forecast', line=dict(color='red'))
+    fig.update_layout(title=f'Corrected Forecast for {selected_product} in {selected_state} using SARIMA Model',
+                    xaxis_title='Date',
+                    yaxis_title='Quantity (cubic meters)'
+                    )
+
+    st.plotly_chart(fig)

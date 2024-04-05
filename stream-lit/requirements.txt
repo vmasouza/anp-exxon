@@ -3,3 +3,4 @@ numpy
 geopy
 streamlit
 plotly.express
+statsmodels
