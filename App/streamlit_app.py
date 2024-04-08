@@ -6,7 +6,7 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 import plotly.express as px
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
-data = pd.read_csv("UF-072001-022024.csv", sep=",")
+data = pd.read_csv("Database//UF-072001-022024.csv", sep=",")
 
 months = {
     1: 'JANEIRO',
